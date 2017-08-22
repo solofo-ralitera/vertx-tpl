@@ -72,7 +72,7 @@ public class Mongo extends AbstractVerticle
         vertx
                 .createHttpServer()
                 .requestHandler(router::accept)
-                .listen(4002, (AsyncResult<HttpServer> result) -> {
+                .listen(4003, (AsyncResult<HttpServer> result) -> {
                     if (result.succeeded()) {
                         startFuture.complete();
                     } else {
