@@ -27,13 +27,17 @@ public class Socket extends AbstractVerticle {
         SockJSHandler sockJSHandler = SockJSHandler.create(vertx);
         BridgeOptions options = new BridgeOptions()
                 .addInboundPermitted(new PermittedOptions().setAddress("board-message"))
-                .addOutboundPermitted(new PermittedOptions().setAddress("board-message"));
+                .addOutboundPermitted(new PermittedOptions().setAddress("board-message"))
+                .addInboundPermitted(new PermittedOptions().setAddress("board-language"))
+                .addOutboundPermitted(new PermittedOptions().setAddress("board-language"));
         sockJSHandler.bridge(options);
         router.route("/eventbus/*").handler(sockJSHandler);
 
         // Index
         router.route().pathRegex("/.*").handler((RoutingContext ctx) -> {
             ctx.put("path", ctx.request().path());
+            String[] languages = {"html", "python", "javascript", "php", "json"};
+            ctx.put("languages", languages);
             // change to templates/
             engine.render(ctx, "templates/", "index.html", res -> {
                 if (res.succeeded()) {

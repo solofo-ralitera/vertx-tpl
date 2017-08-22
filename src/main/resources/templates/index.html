@@ -8,6 +8,15 @@
 <body class="nospace">
     <div th:if="${context.request().path() == '/slf'}">
         <textarea style="margin:1%;padding:10px;width:90%;min-height:100px;" id="textboard"></textarea>
+        <div>
+            <button
+                    th:each="language : ${context.get('languages')}"
+                    th:text="${language}"
+                    th:value="${language}"
+                    onclick="setLanguage(this)"
+                    class="btn"
+            ></button>
+        </div>
     </div>
     <pre class="nospace"><code id="preboard" class="python"></code></pre>
 
@@ -25,24 +34,48 @@
         .hljs-ln-code .hljs-ln-line{
             margin-left: 10px;
         }
+        .btn{
+            min-width: 100px;
+            margin : 5px;
+        }
     </style>
 
     <script type="text/javascript">
         var highlightBoard = true;
         var eb = new EventBus(window.location.href.replace(/[a-z]*$/ig, "") + 'eventbus');
+        var lastmessage = "";
+
+        function setLastMessage() {
+            document.getElementById("preboard").innerHTML = lastmessage;
+            if(highlightBoard) {
+                hljs.highlightBlock(document.getElementById('preboard'));
+                hljs.lineNumbersBlock(document.getElementById('preboard'));
+            }
+        }
+
+        function setLanguage(btn) {
+            eb.send('board-language', btn.value);
+        }
+
         eb.onopen = function() {
             // set a handler to receive a message
             eb.registerHandler('board-message', function(error, message) {
-                document.getElementById("preboard").innerHTML = message.body;
-                if(highlightBoard) {
-                    hljs.highlightBlock(document.getElementById('preboard'));
-                    hljs.lineNumbersBlock(document.getElementById('preboard'));
-                }
+                if(typeof message.body === "undefined") return false;
+                lastmessage = message.body.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                setLastMessage();
+            });
+            // set a handler to receive a message
+            eb.registerHandler('board-language', function(error, message) {
+                if(typeof message.body === "undefined") return false;
+                document.getElementById("preboard").className = message.body;
+                setLastMessage();
             });
         };
+
         eb.onclose = function() {
             document.getElementById("preboard").innerHTML = "You are disconnected to the board !";
         };
+
         if(document.getElementById('textboard')) {
             document.getElementById('textboard').onkeyup = function() {
                 eb.send('board-message', this.value);
