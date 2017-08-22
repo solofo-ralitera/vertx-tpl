@@ -1,0 +1,31 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-4.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>TZ Whiteboard</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+</head>
+<body>
+
+    <div th:if="${context.request().path() == '/slf'}">
+        <textarea style="width:100%;height:50%;" id="textboard"></textarea>
+    </div>
+    <pre id="preboard"></pre>
+    <script src="/templates/sockjs.min.js"></script>
+    <script src="/templates/vertx-eventbus.js"></script>
+    <script type="text/javascript">
+        var eb = new EventBus(window.location.href.replace(/[a-z]*$/ig, "") + 'eventbus');
+        eb.onopen = function() {
+            // set a handler to receive a message
+            eb.registerHandler('board-message', function(error, message) {
+                //console.log(message);
+                document.getElementById("preboard").innerHTML = message.body
+            });
+        };
+        if(document.getElementById('textboard')) {
+            document.getElementById('textboard').onkeyup = function() {
+                eb.send('board-message', this.value);
+            };
+        }
+    </script>
+</body>
+</html>
