@@ -3,25 +3,48 @@
 <head>
     <title>TZ Whiteboard</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link rel="stylesheet" href="/templates/dracula.css">
 </head>
-<body>
+<body class="nospace">
     <div th:if="${context.request().path() == '/slf'}">
-        <textarea style="width:100%;height:50%;" id="textboard"></textarea>
+        <textarea style="margin:1%;padding:10px;width:90%;min-height:100px;" id="textboard"></textarea>
     </div>
-    <pre id="preboard"></pre>
-    <script src="/templates/sockjs.min.js"></script>
-    <script src="/templates/vertx-eventbus.js"></script>
+    <pre class="nospace"><code id="preboard" class="python"></code></pre>
+
+    <script src="/templates/sockjs.min.js?v=1"></script>
+    <script src="/templates/highlight.pack.js"></script>
+    <style>
+        .nospace {
+            padding : 0px;
+            margin : 0px;
+        }
+        .hljs-ln-numbers {
+            width: 25px;
+            border-right: 1px solid gray;
+        }
+        .hljs-ln-code .hljs-ln-line{
+            margin-left: 10px;
+        }
+    </style>
+
     <script type="text/javascript">
+        var highlightBoard = true;
         var eb = new EventBus(window.location.href.replace(/[a-z]*$/ig, "") + 'eventbus');
         eb.onopen = function() {
             // set a handler to receive a message
             eb.registerHandler('board-message', function(error, message) {
-                //console.log(message);
-                document.getElementById("preboard").innerHTML = message.body
+                document.getElementById("preboard").innerHTML = message.body;
+                if(highlightBoard) {
+                    hljs.highlightBlock(document.getElementById('preboard'));
+                    hljs.lineNumbersBlock(document.getElementById('preboard'));
+                }
             });
         };
+        eb.onclose = function() {
+            document.getElementById("preboard").innerHTML = "You are disconnected to the board !";
+        };
         if(document.getElementById('textboard')) {
-            document.getElementById('textboard').onkeyup = function() {
+            document.getElementById('textboard').onkeydown = function() {
                 eb.send('board-message', this.value);
             };
         }

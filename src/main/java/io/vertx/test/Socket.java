@@ -36,7 +36,7 @@ public class Socket extends AbstractVerticle {
         router.route().pathRegex("/.*").handler((RoutingContext ctx) -> {
             ctx.put("path", ctx.request().path());
             // change to templates/
-            engine.render(ctx, "./src/main/resources/templates/", "index.html", res -> {
+            engine.render(ctx, "templates/", "index.html", res -> {
                 if (res.succeeded()) {
                     ctx.response()
                             .putHeader(HttpHeaders.CONTENT_TYPE, "text/html")
