@@ -44,7 +44,7 @@
             document.getElementById("preboard").innerHTML = "You are disconnected to the board !";
         };
         if(document.getElementById('textboard')) {
-            document.getElementById('textboard').onkeydown = function() {
+            document.getElementById('textboard').onkeyup = function() {
                 eb.send('board-message', this.value);
             };
         }
