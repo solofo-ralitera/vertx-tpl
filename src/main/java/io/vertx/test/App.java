@@ -8,7 +8,7 @@ public class App extends AbstractVerticle {
     public void start() {
 
         // Deploy sample verticle
-        vertx.deployVerticle(VerticleJavaSample.class.getCanonicalName());
+        vertx.deployVerticle(Socket.class.getCanonicalName());
 
     }
 }

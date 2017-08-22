@@ -31,5 +31,10 @@
     <orderEntry type="library" name="Maven: org.mongodb:mongodb-driver-async:3.4.1" level="project" />
     <orderEntry type="library" name="Maven: org.mongodb:mongodb-driver-core:3.4.1" level="project" />
     <orderEntry type="library" name="Maven: org.mongodb:bson:3.4.1" level="project" />
+    <orderEntry type="library" name="Maven: io.vertx:vertx-web-templ-thymeleaf:3.2.1" level="project" />
+    <orderEntry type="library" name="Maven: org.thymeleaf:thymeleaf:2.1.2.RELEASE" level="project" />
+    <orderEntry type="library" name="Maven: ognl:ognl:3.0.6" level="project" />
+    <orderEntry type="library" name="Maven: org.javassist:javassist:3.16.1-GA" level="project" />
+    <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.6.1" level="project" />
   </component>
 </module>
