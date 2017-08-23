@@ -30,7 +30,10 @@ public class Socket extends AbstractVerticle {
                 .addInboundPermitted(new PermittedOptions().setAddress("board-message"))
                 .addOutboundPermitted(new PermittedOptions().setAddress("board-message"))
                 .addInboundPermitted(new PermittedOptions().setAddress("board-language"))
-                .addOutboundPermitted(new PermittedOptions().setAddress("board-language"));
+                .addOutboundPermitted(new PermittedOptions().setAddress("board-language"))
+                .addInboundPermitted(new PermittedOptions().setAddress("board-textselection"))
+                .addOutboundPermitted(new PermittedOptions().setAddress("board-textselection"))
+        ;
         sockJSHandler.bridge(options, event -> {
             if (event.type() == BridgeEventType.SOCKET_CREATED) {
                 //System.out.println("A socket was created");

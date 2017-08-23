@@ -34,7 +34,14 @@
         </div>
     </div>
     <pre class="nospace"><code id="preboard"></code></pre>
-
+    <div id="welcome-psg" style="display:none;">
+___  ___  __       __       __
+ |  |__  /  ` |__|  /  /\  |__)  /\
+ |  |___ \__, |  | /_ /~~\ |  \ /~~\
+ __   __        __   __
+|__) /  \  /\  |__) |  \
+|__) \__/ /~~\ |  \ |__/  o o o
+    </div>
     <script src="/templates/sockjs.min.js?v=1"></script>
     <script src="/templates/highlight.pack.js"></script>
     <style>
@@ -54,6 +61,10 @@
             margin : 0px 2px;
             text-transform: uppercase;
         }
+        .textselected {
+            background-color: cornflowerblue;
+            color: white;
+        }
     </style>
 
     <script type="text/javascript">
@@ -61,26 +72,32 @@
         var eb = new EventBus(window.location.href.replace(/[a-z]*$/ig, "") + 'eventbus');
         var lastmessage = "";
 
-        function setLastMessage() {
-            document.getElementById("preboard").innerHTML = lastmessage;
+        function setLastMessage(msg) {
+            document.getElementById('preboard').innerHTML = msg || lastmessage;
             if(highlightBoard) {
                 hljs.highlightBlock(document.getElementById('preboard'));
                 hljs.lineNumbersBlock(document.getElementById('preboard'));
             }
+            if(document.getElementById('preboard').innerHTML == '') {
+                welcome();
+            }
         }
-
+        function welcome() {
+            document.getElementById('preboard').innerHTML = document.getElementById('welcome-psg').innerHTML;
+        }
         function setLanguage(btn) {
             eb.publish('board-language', btn.value);
         }
 
         eb.onopen = function() {
-            // set a handler to receive a message
+            welcome();
+            // handle message
             eb.registerHandler('board-message', function(error, message) {
                 if(typeof message.body === "undefined") return false;
                 lastmessage = message.body.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 setLastMessage();
             });
-            // set a handler to receive a message
+            // handle language change
             eb.registerHandler('board-language', function(error, message) {
                 if(typeof message.body === "undefined") return false;
                 if(message.body === 'none') {
@@ -91,7 +108,17 @@
                 }
                 setLastMessage();
             });
+            // handle selection
+            eb.registerHandler('board-textselection', function(error, message) {
+                if(typeof message.body === "undefined") return false;
+                highlightBoard = false;
+                setLastMessage(lastmessage.replace(
+                    new RegExp('('+message.body.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&")+')', 'g'),
+                    '<span class="textselected">$1</span>')
+                );
+            });
         };
+
         eb.onclose = function() {
             document.getElementById("preboard").innerHTML = "You are disconnected to the board, please refresh your browser !";
         };
@@ -100,6 +127,12 @@
             document.getElementById('textboard').onkeyup = function() {
                 eb.publish('board-message', this.value);
             };
+            document.getElementById('textboard').addEventListener('select', function(e) {
+                var sel = window.getSelection().toString();
+                if(sel && sel.length > 3) {
+                    eb.publish('board-textselection', sel);
+                }
+            }, false);
         }
     </script>
 </body>
