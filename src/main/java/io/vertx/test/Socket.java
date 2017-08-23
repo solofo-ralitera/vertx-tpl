@@ -6,6 +6,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.StaticHandler;
+import io.vertx.ext.web.handler.sockjs.BridgeEventType;
 import io.vertx.ext.web.handler.sockjs.BridgeOptions;
 import io.vertx.ext.web.handler.sockjs.PermittedOptions;
 import io.vertx.ext.web.handler.sockjs.SockJSHandler;
@@ -30,13 +31,21 @@ public class Socket extends AbstractVerticle {
                 .addOutboundPermitted(new PermittedOptions().setAddress("board-message"))
                 .addInboundPermitted(new PermittedOptions().setAddress("board-language"))
                 .addOutboundPermitted(new PermittedOptions().setAddress("board-language"));
-        sockJSHandler.bridge(options);
+        sockJSHandler.bridge(options, event -> {
+            if (event.type() == BridgeEventType.SOCKET_CREATED) {
+                //System.out.println("A socket was created");
+            }
+            else if (event.type() == BridgeEventType.RECEIVE) {
+                //System.out.println(event.socket().writeHandlerID());
+            }
+            event.complete(true);
+        });
         router.route("/eventbus/*").handler(sockJSHandler);
 
         // Index
         router.route().pathRegex("/.*").handler((RoutingContext ctx) -> {
             ctx.put("path", ctx.request().path());
-            String[] languages = {"html", "python", "javascript", "php", "json"};
+            String[] languages = {"none", "html", "python", "javascript", "php", "json"};
             ctx.put("languages", languages);
             // change to templates/
             engine.render(ctx, "templates/", "index.html", res -> {

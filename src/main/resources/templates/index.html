@@ -54,7 +54,7 @@
         }
 
         function setLanguage(btn) {
-            eb.send('board-language', btn.value);
+            eb.publish('board-language', btn.value);
         }
 
         eb.onopen = function() {
@@ -67,18 +67,22 @@
             // set a handler to receive a message
             eb.registerHandler('board-language', function(error, message) {
                 if(typeof message.body === "undefined") return false;
-                document.getElementById("preboard").className = message.body;
+                if(message.body === 'none') {
+                    highlightBoard = false;
+                }else {
+                    highlightBoard = true;
+                    document.getElementById("preboard").className = message.body;
+                }
                 setLastMessage();
             });
         };
-
         eb.onclose = function() {
-            document.getElementById("preboard").innerHTML = "You are disconnected to the board !";
+            document.getElementById("preboard").innerHTML = "You are disconnected to the board, please refresh your browser !";
         };
 
         if(document.getElementById('textboard')) {
             document.getElementById('textboard').onkeyup = function() {
-                eb.send('board-message', this.value);
+                eb.publish('board-message', this.value);
             };
         }
     </script>
