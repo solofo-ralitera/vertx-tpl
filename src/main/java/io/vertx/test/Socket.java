@@ -45,7 +45,7 @@ public class Socket extends AbstractVerticle {
         // Index
         router.route().pathRegex("/.*").handler((RoutingContext ctx) -> {
             ctx.put("path", ctx.request().path());
-            String[] languages = {"none", "html", "python", "javascript", "php", "json"};
+            String[] languages = {"none", "html", "javascript", "css", "json", "python", "php"};
             ctx.put("languages", languages);
             // change to templates/
             engine.render(ctx, "templates/", "index.html", res -> {

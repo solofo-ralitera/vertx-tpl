@@ -6,9 +6,24 @@
     <link rel="stylesheet" href="/templates/dracula.css">
 </head>
 <body class="nospace">
-    <div th:if="${context.request().path() == '/slf'}">
-        <textarea style="margin:1%;padding:10px;width:90%;min-height:100px;" id="textboard"></textarea>
-        <div>
+    <div class="textboard" th:if="${context.request().path() == '/slf'}">
+        <style>
+            body.nospace {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                grid-gap: 10px;
+            }
+            .textboard {
+                grid-column: 1 / 2;
+                grid-row: 1;
+            }
+            .nospace {
+                grid-column: 2 / 2;
+                grid-row: 1;
+            }
+        </style>
+        <textarea style="padding-left:10px;width:99%;height:600px;" id="textboard"></textarea>
+        <div style="text-align: center;">
             <button
                     th:each="language : ${context.get('languages')}"
                     th:text="${language}"
@@ -18,7 +33,7 @@
             ></button>
         </div>
     </div>
-    <pre class="nospace"><code id="preboard" class="python"></code></pre>
+    <pre class="nospace"><code id="preboard"></code></pre>
 
     <script src="/templates/sockjs.min.js?v=1"></script>
     <script src="/templates/highlight.pack.js"></script>
@@ -28,20 +43,21 @@
             margin : 0px;
         }
         .hljs-ln-numbers {
-            width: 25px;
+            width: 30px;
             border-right: 1px solid gray;
         }
         .hljs-ln-code .hljs-ln-line{
             margin-left: 10px;
         }
         .btn{
-            min-width: 100px;
-            margin : 5px;
+            min-width: 70px;
+            margin : 0px 2px;
+            text-transform: uppercase;
         }
     </style>
 
     <script type="text/javascript">
-        var highlightBoard = true;
+        var highlightBoard = false;
         var eb = new EventBus(window.location.href.replace(/[a-z]*$/ig, "") + 'eventbus');
         var lastmessage = "";
 
