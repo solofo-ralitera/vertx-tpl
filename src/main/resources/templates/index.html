@@ -124,7 +124,8 @@ ___  ___  __       __       __
 
         if(document.getElementById('textboard')) {
             document.getElementById('textboard').onkeyup = function() {
-                eb.publish('board-message', this.value);
+                if(window.getSelection().toString() === '')
+                    eb.publish('board-message', this.value);
             };
             document.getElementById('textboard').addEventListener('select', function(e) {
                 var sel = window.getSelection().toString();
