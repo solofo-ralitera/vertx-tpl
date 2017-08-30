@@ -85,6 +85,12 @@ ___  ___  __       __       __
         function setLanguage(btn) {
             eb.publish('board-language', btn.value);
         }
+        String.prototype.escapeTag = function() {
+         return this.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        };
+        String.prototype.escapeReg = function() {
+            return this.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+        };
         window.setInterval(function() {
             welcome();
         }, 10000);
@@ -93,7 +99,7 @@ ___  ___  __       __       __
             // handle message
             eb.registerHandler('board-message', function(error, message) {
                 if(typeof message.body === "undefined") return false;
-                lastmessage = message.body.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                lastmessage = message.body.escapeTag();
                 setLastMessage();
             });
             // handle language change
@@ -112,7 +118,7 @@ ___  ___  __       __       __
                 if(typeof message.body === "undefined") return false;
                 highlightBoard = false;
                 setLastMessage(lastmessage.replace(
-                    new RegExp('('+message.body.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&")+')', 'g'),
+                    new RegExp('('+message.body.escapeTag().escapeReg()+')', 'g'),
                     '<span class="textselected">$1</span>')
                 );
             });
