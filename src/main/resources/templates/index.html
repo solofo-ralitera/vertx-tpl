@@ -28,7 +28,7 @@
                     th:each="language : ${context.get('languages')}"
                     th:text="${language}"
                     th:value="${language}"
-                    onclick="setLanguage(this)"
+                    onclick="sendLanguage(this)"
                     class="btn"
             ></button>
         </div>
@@ -72,6 +72,9 @@ ___  ___  __       __       __
         var eb = new EventBus(window.location.href.replace(/[a-z]*$/ig, "") + 'eventbus');
         var lastmessage = '';
 
+        function escapeMessage(msg) {
+            return msg.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
         function setLastMessage(msg) {
             document.getElementById('preboard').innerHTML = msg || lastmessage;
             if(highlightBoard) {
@@ -79,10 +82,26 @@ ___  ___  __       __       __
                 hljs.lineNumbersBlock(document.getElementById('preboard'));
             }
         }
+        function setLanguage(lng) {
+            if(lng === 'none') {
+                highlightBoard = false;
+            }else {
+                highlightBoard = true;
+                document.getElementById("preboard").className = lng;
+            }
+            setLastMessage();
+        }
+        function setSelection(sel) {
+            highlightBoard = false;
+            setLastMessage(lastmessage.replace(
+                new RegExp('('+sel.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&")+')', 'g'),
+                '<span class="textselected">$1</span>')
+            );
+        }
         function welcome() {
             if(lastmessage === '') document.getElementById('preboard').innerHTML = document.getElementById('welcome-psg').innerHTML;
         }
-        function setLanguage(btn) {
+        function sendLanguage(btn) {
             eb.publish('board-language', btn.value);
         }
         window.setInterval(function() {
@@ -93,31 +112,29 @@ ___  ___  __       __       __
             // handle message
             eb.registerHandler('board-message', function(error, message) {
                 if(typeof message.body === "undefined") return false;
-                lastmessage = message.body.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                lastmessage = escapeMessage(message.body);
                 setLastMessage();
             });
             // handle language change
             eb.registerHandler('board-language', function(error, message) {
                 if(typeof message.body === "undefined") return false;
-                if(message.body === 'none') {
-                    highlightBoard = false;
-                }else {
-                    highlightBoard = true;
-                    document.getElementById("preboard").className = message.body;
-                }
-                setLastMessage();
+                setLanguage(message.body);
             });
             // handle selection
             eb.registerHandler('board-textselection', function(error, message) {
                 if(typeof message.body === "undefined") return false;
-                highlightBoard = false;
-                setLastMessage(lastmessage.replace(
-                    new RegExp('('+message.body.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&")+')', 'g'),
-                    '<span class="textselected">$1</span>')
-                );
+                setSelection(message.body);
+            });
+            eb.registerHandler('board-newconnection', function(error, message) {
+                if(error) return false;
+                if(message.lastmessage) {
+                    lastmessage = escapeMessage(message.lastmessage);
+                    setLastMessage();
+                }
+                if(message.language) setLanguage(message.language);
+                //if(message.textselection) setSelection(message.textselection);
             });
         };
-
         eb.onclose = function() {
             document.getElementById("preboard").innerHTML = "You are disconnected to the board, please refresh your browser !";
         };
