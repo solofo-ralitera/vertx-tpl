@@ -5,24 +5,27 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <link rel="stylesheet" href="/templates/dracula.css">
 </head>
-<body class="nospace">
+<body>
     <div class="textboard" th:if="${#strings.endsWith(context.request().path(), '/edit')}">
         <style>
-            body.nospace {
+            body {
                 display: grid;
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: 40% 60%;
                 grid-gap: 10px;
             }
             .textboard {
-                grid-column: 1 / 2;
-                grid-row: 1;
+                grid-column-start: 1;
+                grid-column-end: 2;
+                grid-row-start: 1
             }
             .nospace {
-                grid-column: 2 / 2;
-                grid-row: 1;
+                grid-column-start: 2;
+                grid-column-end: 3;
+                grid-row-start: 1
             }
+
         </style>
-        <textarea style="padding-left:10px;width:99%;height:300px;" id="textboard"></textarea>
+        <textarea style="padding-left:10px;width:99%;height:80%;max-height:600px;" id="textboard"></textarea>
         <div style="text-align: center;">
             <button
                     th:each="language : ${context.get('languages')}"
@@ -61,6 +64,12 @@ ___  ___  __       __       __
     <script src="/templates/sockjs.min.js?v=1"></script>
     <script src="/templates/highlight.pack.js"></script>
     <style>
+        html, body {
+            margin: 0px;
+            padding: 0px;
+            outline: 0px;
+            height: 100%;
+        }
         .nospace {
             padding : 0px;
             margin : 0px;
