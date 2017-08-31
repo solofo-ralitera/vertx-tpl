@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="/templates/dracula.css">
 </head>
 <body class="nospace">
-    <div class="textboard" th:if="${context.request().path() == '/slf'}">
+    <div class="textboard" th:if="${#strings.endsWith(context.request().path(), '/edit')}">
         <style>
             body.nospace {
                 display: grid;
@@ -22,7 +22,7 @@
                 grid-row: 1;
             }
         </style>
-        <textarea style="padding-left:10px;width:99%;height:600px;" id="textboard"></textarea>
+        <textarea style="padding-left:10px;width:99%;height:300px;" id="textboard"></textarea>
         <div style="text-align: center;">
             <button
                     th:each="language : ${context.get('languages')}"
@@ -32,6 +32,22 @@
                     class="btn"
             ></button>
         </div>
+        <script type="text/javascript">
+            // Send language event change
+            function sendLanguage(btn) {
+                eb.publish('board-language' + boardKey, btn.value);
+            }
+            document.getElementById('textboard').onkeyup = function() {
+                if(window.getSelection().toString() === '')
+                    eb.publish('board-message' + boardKey, this.value);
+            };
+            document.getElementById('textboard').addEventListener('select', function(e) {
+                var sel = window.getSelection().toString();
+                if(sel && sel.length > 2) {
+                    eb.publish('board-textselection' + boardKey, sel);
+                }
+            }, false);
+        </script>
     </div>
     <pre class="nospace"><code id="preboard"></code></pre>
     <div id="welcome-psg" style="display:none;">
@@ -66,97 +82,99 @@ ___  ___  __       __       __
             color: white;
         }
     </style>
-
     <script type="text/javascript">
+        String.prototype.escapeTag = function() {
+            return this.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        };
+        String.prototype.escapeReg = function() {
+            return this.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+        };
+    </script>
+    <script type="text/javascript">
+        var boardKey = '-[[${context.request().path()}]]'.replace(/\//g, '').replace(/edit$/, '').replace(/^-$/, '');
+        if(boardKey === '') boardKey = '-defaultboardsocketkey';
+        var eb = new EventBus(window.location.origin + '/eventbus', {
+            server : boardKey
+        });
         var highlightBoard = false;
-        var eb = new EventBus(window.location.href.replace(/[a-z]*$/ig, "") + 'eventbus');
         var lastmessage = '';
 
-        function escapeMessage(msg) {
-            return msg.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        }
-        function setLastMessage(msg) {
-            document.getElementById('preboard').innerHTML = msg || lastmessage;
+        // Update board preview
+        function setLastMessage(msg, selection) {
+            if(msg) lastmessage = msg;
+            if(typeof selection !== 'undefined') {
+                document.getElementById('preboard').innerHTML = lastmessage.replace(
+                    new RegExp('('+selection.escapeReg()+')', 'g'),
+                    '<span class="textselected">$1</span>')
+                ;
+            }else {
+                document.getElementById('preboard').innerHTML = lastmessage
+            }
             if(highlightBoard) {
                 hljs.highlightBlock(document.getElementById('preboard'));
                 hljs.lineNumbersBlock(document.getElementById('preboard'));
             }
         }
+        function setEditorValue(val){
+            if(document.getElementById('textboard')) document.getElementById('textboard').value = val;
+        }
+        // Update language highlighting
         function setLanguage(lng) {
-            if(lng === 'none') {
-                highlightBoard = false;
-            }else {
-                highlightBoard = true;
-                document.getElementById("preboard").className = lng;
+            switch (lng) {
+                case 'none':
+                    highlightBoard = false;
+                    break;
+                default :
+                    highlightBoard = true;
+                    document.getElementById("preboard").className = lng;
+                    break;
             }
             setLastMessage();
         }
+        // Update board text selection
         function setSelection(sel) {
             highlightBoard = false;
-            setLastMessage(lastmessage.replace(
-                new RegExp('('+sel.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&")+')', 'g'),
-                '<span class="textselected">$1</span>')
-            );
+            setLastMessage(lastmessage, sel);
         }
+        // Show welcom message
         function welcome() {
             if(lastmessage === '') document.getElementById('preboard').innerHTML = document.getElementById('welcome-psg').innerHTML;
         }
-        function sendLanguage(btn) {
-            eb.publish('board-language', btn.value);
-        }
-        String.prototype.escapeTag = function() {
-         return this.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        };
-        String.prototype.escapeReg = function() {
-            return this.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
-        };
-        window.setInterval(function() {
-            welcome();
-        }, 30000);
+
+        window.setInterval(welcome, 30000);
+
         eb.onopen = function() {
             welcome();
-            // handle message
-            eb.registerHandler('board-message', function(error, message) {
+            // handle board content
+            eb.registerHandler('board-message' + boardKey, function(error, message) {
                 if(typeof message.body === "undefined") return false;
-                lastmessage = message.body.escapeTag();
-                setLastMessage();
+                setLastMessage(message.body.escapeTag());
             });
             // handle language change
-            eb.registerHandler('board-language', function(error, message) {
+            eb.registerHandler('board-language' + boardKey, function(error, message) {
                 if(typeof message.body === "undefined") return false;
                 setLanguage(message.body);
             });
-            // handle selection
-            eb.registerHandler('board-textselection', function(error, message) {
+            // handle text selection
+            eb.registerHandler('board-textselection' + boardKey, function(error, message) {
                 if(typeof message.body === "undefined") return false;
                 setSelection(message.body);
             });
+            // handle new connection
             eb.registerHandler('board-newconnection', function(error, message) {
                 if(error) return false;
                 if(message.lastmessage) {
-                    lastmessage = escapeMessage(message.lastmessage);
-                    setLastMessage();
+                    setEditorValue(message.lastmessage);
+                    setLastMessage(message.lastmessage.escapeTag());
                 }
                 if(message.language) setLanguage(message.language);
                 //if(message.textselection) setSelection(message.textselection);
             });
         };
+        // Handle disconnecting
         eb.onclose = function() {
             document.getElementById("preboard").innerHTML = "You are disconnected to the board, please refresh your browser !";
         };
-
-        if(document.getElementById('textboard')) {
-            document.getElementById('textboard').onkeyup = function() {
-                if(window.getSelection().toString() === '')
-                    eb.publish('board-message', this.value);
-            };
-            document.getElementById('textboard').addEventListener('select', function(e) {
-                var sel = window.getSelection().toString();
-                if(sel && sel.length > 3) {
-                    eb.publish('board-textselection', sel);
-                }
-            }, false);
-        }
     </script>
 </body>
 </html>

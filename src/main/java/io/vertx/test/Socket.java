@@ -2,7 +2,7 @@ package io.vertx.test;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
-import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.eventbus.SendContext;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
@@ -14,11 +14,14 @@ import io.vertx.ext.web.handler.sockjs.PermittedOptions;
 import io.vertx.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.ext.web.templ.ThymeleafTemplateEngine;
 
+import java.util.HashMap;
+import java.util.Map;
+
 
 public class Socket extends AbstractVerticle {
-    private String Msg_LastMessage = "";
-    private String Msg_CurrentLanguage = "";
-    private String Msg_TextSelection = "";
+    private Map<String, String> Msg_LastMessage = new HashMap<>();
+    private Map<String, String> Msg_CurrentLanguage = new HashMap<>();
+    private Map<String, String> Msg_TextSelection = new HashMap<>();
 
     @Override
     public void start(final Future<Void> startFuture) {
@@ -30,30 +33,35 @@ public class Socket extends AbstractVerticle {
         router.route("/templates/*").handler(StaticHandler.create("templates"));
 
         // EventBus
-        EventBus eventBus = vertx.eventBus();
-        eventBus.consumer("board-message").handler(message -> Msg_LastMessage = message.body().toString());
-        eventBus.consumer("board-language").handler(message -> Msg_CurrentLanguage = message.body().toString());
-        eventBus.consumer("board-textselection").handler(message -> Msg_TextSelection = message.body().toString());
+        vertx.eventBus().addInterceptor((SendContext ctx) -> {
+            String address = ctx.message().address();
+            String key = address.substring(address.lastIndexOf('-') + 1);
+            if(address.startsWith("board-message")) {
+                Msg_LastMessage.put(key, ctx.message().body().toString());
+            }
+            else if(address.startsWith("board-language")) {
+                Msg_CurrentLanguage.put(key, ctx.message().body().toString());
+            }
+            else if(address.startsWith("board-textselection")) {
+                Msg_TextSelection.put(key, ctx.message().body().toString());
+            }
+            ctx.next();
+        });
 
         SockJSHandler sockJSHandler = SockJSHandler.create(vertx);
         BridgeOptions options = new BridgeOptions()
-                .addInboundPermitted(new PermittedOptions().setAddress("board-message"))
-                .addOutboundPermitted(new PermittedOptions().setAddress("board-message"))
-                .addInboundPermitted(new PermittedOptions().setAddress("board-language"))
-                .addOutboundPermitted(new PermittedOptions().setAddress("board-language"))
-                .addInboundPermitted(new PermittedOptions().setAddress("board-textselection"))
-                .addOutboundPermitted(new PermittedOptions().setAddress("board-textselection"))
-                .addOutboundPermitted(new PermittedOptions().setAddress("board-newconnection"))
-        ;
+                .addInboundPermitted(new PermittedOptions().setAddressRegex("board\\-(.{0,})"))
+                .addOutboundPermitted(new PermittedOptions().setAddressRegex("board\\-(.{0,})"));
+
         sockJSHandler.bridge(options, event -> {
             if (event.type() == BridgeEventType.SOCKET_CREATED) {
-                //System.out.println("A socket was created");
+                String key = event.socket().uri().split("/")[2].replace("-", "");
                 event.socket().write(new JsonObject()
                         .put("address", "board-newconnection")
                         .put("body", "init board")
-                        .put("lastmessage", Msg_LastMessage)
-                        .put("language", Msg_CurrentLanguage)
-                        .put("textselection", Msg_TextSelection)
+                        .put("lastmessage", Msg_LastMessage.getOrDefault(key, ""))
+                        .put("language", Msg_CurrentLanguage.getOrDefault(key, ""))
+                        .put("textselection", Msg_TextSelection.getOrDefault(key, ""))
                         .encode()
                 );
             }
