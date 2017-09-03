@@ -6,53 +6,69 @@
     <link rel="stylesheet" href="/templates/dracula.css">
 </head>
 <body>
-    <div class="textboard" th:if="${#strings.endsWith(context.request().path(), '/edit')}">
-        <style>
-            body {
-                display: grid;
-                grid-template-columns: 40% 60%;
-                grid-gap: 10px;
-            }
-            .textboard {
-                grid-column-start: 1;
-                grid-column-end: 2;
-                grid-row-start: 1
-            }
-            .nospace {
-                grid-column-start: 2;
-                grid-column-end: 3;
-                grid-row-start: 1
-            }
-
-        </style>
-        <textarea style="padding-left:10px;width:99%;height:80%;max-height:600px;" id="textboard"></textarea>
-        <div style="text-align: center;">
-            <button
-                    th:each="language : ${context.get('languages')}"
-                    th:text="${language}"
-                    th:value="${language}"
-                    onclick="sendLanguage(this)"
-                    class="btn"
-            ></button>
-        </div>
-        <script type="text/javascript">
-            // Send language event change
-            function sendLanguage(btn) {
-                eb.publish('board-language' + boardKey, btn.value);
-            }
-            document.getElementById('textboard').onkeyup = function() {
-                if(window.getSelection().toString() === '')
-                    eb.publish('board-message' + boardKey, this.value);
-            };
-            document.getElementById('textboard').addEventListener('select', function(e) {
-                var sel = window.getSelection().toString();
-                if(sel && sel.length > 2) {
-                    eb.publish('board-textselection' + boardKey, sel);
+    <div class="board-content" id="board-content">
+        <div class="textboard" th:if="${#strings.endsWith(context.request().path(), '/edit')}">
+            <style>
+                .board-content {
+                    display: grid;
+                    grid-template-columns: 40% 60%;
+                    grid-gap: 10px;
+                    height:100%;
                 }
-            }, false);
-        </script>
+                .textboard {
+                    grid-column-start: 1;
+                    grid-column-end: 2;
+                    grid-row-start: 1
+                }
+                .nospace {
+                    grid-column-start: 2;
+                    grid-column-end: 3;
+                    grid-row-start: 1
+                }
+            </style>
+            <textarea style="padding-left:10px;width:99%;height:80%;max-height:600px;" id="textboard"></textarea>
+            <div style="text-align: center;">
+                <button
+                        th:each="language : ${context.get('languages')}"
+                        th:text="${language}"
+                        th:value="${language}"
+                        onclick="sendLanguage(this)"
+                        class="btn"
+                ></button>
+            </div>
+            <script type="text/javascript">
+                // Send language event change
+                function sendLanguage(btn) {
+                    eb.publish('board-language' + boardKey, btn.value);
+                }
+                document.getElementById('textboard').onkeyup = function() {
+                    if(window.getSelection().toString() === '')
+                        eb.publish('board-message' + boardKey, this.value);
+                };
+                document.getElementById('textboard').addEventListener('select', function(e) {
+                    var sel = window.getSelection().toString();
+                    if(sel && sel.length > 2) {
+                        eb.publish('board-textselection' + boardKey, sel);
+                    }
+                }, false);
+            </script>
+        </div>
+        <pre class="nospace"><code id="preboard"></code></pre>
     </div>
-    <pre class="nospace"><code id="preboard"></code></pre>
+    <div id="sketchpadapp" style="display: none;">
+        <div class="textboard" th:if="${#strings.endsWith(context.request().path(), '/edit')}">
+            <button onclick="sendLanguage({value:'none'});" class="btn">Return</button>
+            <button onclick="dBoard.setColor(  0,   0,   0);" style="background-color: rgb(  0,   0,   0);" class="btn">&nbsp;</button>
+            <button onclick="dBoard.setColor(255, 255, 255);" style="background-color: rgb(255, 255, 255);" class="btn">&nbsp;</button>
+            <button onclick="dBoard.setColor(255,  10,  10);" style="background-color: rgb(255,  10,  10);" class="btn">&nbsp;</button>
+            <button onclick="dBoard.setColor( 60, 145,  30);" style="background-color: rgb( 60, 145,  30);" class="btn">&nbsp;</button>
+            <button onclick="dBoard.setSize( 5);" class="btn"> 5</button>
+            <button onclick="dBoard.setSize(10);" class="btn">10</button>
+            <button onclick="dBoard.setSize(15);" class="btn">15</button>
+            <button onclick="eb.publish('board-draw-clear' + boardKey, '');" class="btn">Clear</button>
+        </div>
+        <canvas id="sketchpad" height="600" width="800"></canvas>
+    </div>
     <div id="welcome-psg" style="display:none;">
 ___  ___  __       __       __
  |  |__  /  ` |__|  /  /\  |__)  /\
@@ -63,6 +79,7 @@ ___  ___  __       __       __
     </div>
     <script src="/templates/sockjs.min.js?v=1"></script>
     <script src="/templates/highlight.pack.js"></script>
+    <script src="/templates/DrawingBoard.js"></script>
     <style>
         html, body {
             margin: 0px;
@@ -82,7 +99,8 @@ ___  ___  __       __       __
             margin-left: 10px;
         }
         .btn{
-            min-width: 70px;
+            min-width: 50px;
+            min-height: 20px;
             margin : 0px 2px;
             text-transform: uppercase;
         }
@@ -90,7 +108,23 @@ ___  ___  __       __       __
             background-color: cornflowerblue;
             color: white;
         }
-    </style>
+        #sketchpadapp {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        #sketchpad {
+            float:left;
+            height:600px;
+            width:800px;
+            border:2px solid #888;
+            border-radius:4px;
+            position:relative; /* Necessary for correct mouse co-ords in Firefox */
+        }
+s    </style>
     <script type="text/javascript">
         String.prototype.escapeTag = function() {
             return this.replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -107,6 +141,78 @@ ___  ___  __       __       __
         });
         var highlightBoard = false;
         var lastmessage = '';
+
+        // Drawing board
+        var publishDraw = debounce(function() {
+            eb.publish('board-draw-draw' + boardKey, dBoard.dataUrl());
+        }, 100);
+        var dBoard = new DrawingBoard({
+            onDraw : publishDraw
+        });
+
+        window.setInterval(welcome, 30000);
+
+        eb.onopen = function() {
+            welcome();
+
+            // handle new connection
+            eb.registerHandler('board-newconnection', function(error, message) {
+                if(error) return false;
+                if(message.lastmessage) {
+                    setEditorValue(message.lastmessage);
+                    setLastMessage(message.lastmessage.escapeTag());
+                }
+                if(message.language) setLanguage(message.language);
+                //if(message.textselection) setSelection(message.textselection);
+            });
+
+            // handle board content
+            eb.registerHandler('board-message' + boardKey, function(error, message) {
+                if(typeof message.body === "undefined") return false;
+                setLastMessage(message.body.escapeTag());
+            });
+
+            // handle language change
+            eb.registerHandler('board-language' + boardKey, function(error, message) {
+                if(typeof message.body === "undefined") return false;
+                setLanguage(message.body);
+            });
+
+            // handle text selection
+            eb.registerHandler('board-textselection' + boardKey, function(error, message) {
+                if(typeof message.body === "undefined") return false;
+                setSelection(message.body);
+            });
+
+            // handle drawing
+            eb.registerHandler('board-draw-draw' + boardKey, function(error, message) {
+                if(typeof message.body === "undefined") return false;
+                dBoard.setDataUrl(message.body);
+            });
+            eb.registerHandler('board-draw-clear' + boardKey, function(error, message) {
+                dBoard.clearCanvas();
+            });
+        };
+        // Handle disconnecting
+        eb.onclose = function() {
+            document.getElementById("preboard").innerHTML = "You are disconnected to the board, please refresh your browser !";
+        };
+
+
+        function debounce(func, wait, immediate) {
+            var timeout;
+            return function() {
+                var context = this, args = arguments;
+                var later = function() {
+                    timeout = null;
+                    if (!immediate) func.apply(context, args);
+                };
+                var callNow = immediate && !timeout;
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+                if (callNow) func.apply(context, args);
+            };
+        }
 
         // Update board preview
         function setLastMessage(msg, selection) {
@@ -131,9 +237,14 @@ ___  ___  __       __       __
         function setLanguage(lng) {
             switch (lng) {
                 case 'none':
+                    switchBoard(false);
                     highlightBoard = false;
                     break;
+                case 'board':
+                    switchBoard(true);
+                    break;
                 default :
+                    switchBoard(false);
                     highlightBoard = true;
                     document.getElementById("preboard").className = lng;
                     break;
@@ -149,41 +260,17 @@ ___  ___  __       __       __
         function welcome() {
             if(lastmessage === '') document.getElementById('preboard').innerHTML = document.getElementById('welcome-psg').innerHTML;
         }
-
-        window.setInterval(welcome, 30000);
-
-        eb.onopen = function() {
-            welcome();
-            // handle board content
-            eb.registerHandler('board-message' + boardKey, function(error, message) {
-                if(typeof message.body === "undefined") return false;
-                setLastMessage(message.body.escapeTag());
-            });
-            // handle language change
-            eb.registerHandler('board-language' + boardKey, function(error, message) {
-                if(typeof message.body === "undefined") return false;
-                setLanguage(message.body);
-            });
-            // handle text selection
-            eb.registerHandler('board-textselection' + boardKey, function(error, message) {
-                if(typeof message.body === "undefined") return false;
-                setSelection(message.body);
-            });
-            // handle new connection
-            eb.registerHandler('board-newconnection', function(error, message) {
-                if(error) return false;
-                if(message.lastmessage) {
-                    setEditorValue(message.lastmessage);
-                    setLastMessage(message.lastmessage.escapeTag());
-                }
-                if(message.language) setLanguage(message.language);
-                //if(message.textselection) setSelection(message.textselection);
-            });
-        };
-        // Handle disconnecting
-        eb.onclose = function() {
-            document.getElementById("preboard").innerHTML = "You are disconnected to the board, please refresh your browser !";
-        };
+        // Show canevas board
+        function switchBoard(b) {
+            if(b) {
+                document.getElementById('board-content').style.display = 'none';
+                document.getElementById('sketchpadapp').style.display = '';
+                dBoard.initCanvas('sketchpad');
+            } else {
+                document.getElementById('board-content').style.display = '';
+                document.getElementById('sketchpadapp').style.display = 'none';
+            }
+        }
     </script>
 </body>
 </html>
