@@ -18,9 +18,13 @@ var DrawingBoard = function (options) {
     this.canevasColorB = 0;
     this.canevasColorA = 255;
 
+    this.container = options.container;
+
     // events
     this.onDraw = options.onDraw || function () {};
     this.onClear = options.onClear || function () {};
+
+    this.initCanvas();
 };
 
 DrawingBoard.prototype.setColor = function (r,g,b) {
@@ -132,9 +136,10 @@ DrawingBoard.prototype.getTouchPos = function(e) {
 
 
 // Set-up the canvas and add our event handlers after the page has loaded
-DrawingBoard.prototype.initCanvas = function (canvasId) {
+DrawingBoard.prototype.initCanvas = function () {
     // Get the specific canvas element from the HTML document
-    this.canvas = document.getElementById(canvasId);
+    this.canvas = document.createElement('canvas');
+    this.container.appendChild(this.canvas);
 
     // If the browser supports the canvas tag, get the 2d drawing context for this canvas
     if (this.canvas.getContext)
