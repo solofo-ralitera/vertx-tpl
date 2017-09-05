@@ -101,11 +101,11 @@ TextBoard.prototype.initPreview = function () {
 };
 
 TextBoard.prototype.show = function() {
-    this.container.style.display = 'grid';
+    if(this.container.style.display !== 'grid') this.container.style.display = 'grid';
     return this;
 };
 TextBoard.prototype.hide = function() {
-    this.container.style.display = 'none';
+    if(this.container.style.display !== 'none') this.container.style.display = 'none';
     return this;
 };
 

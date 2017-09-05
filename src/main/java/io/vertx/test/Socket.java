@@ -22,6 +22,7 @@ public class Socket extends AbstractVerticle {
     private Map<String, String> Msg_LastMessage = new HashMap<>();
     private Map<String, String> Msg_CurrentLanguage = new HashMap<>();
     private Map<String, String> Msg_TextSelection = new HashMap<>();
+    private Map<String, String> Msg_Drawing = new HashMap<>();
 
     @Override
     public void start(final Future<Void> startFuture) {
@@ -45,6 +46,9 @@ public class Socket extends AbstractVerticle {
             else if(address.startsWith("board-textselection")) {
                 Msg_TextSelection.put(key, ctx.message().body().toString());
             }
+            else if(address.startsWith("board-draw-draw") || address.startsWith("board-draw-clear")) {
+                Msg_Drawing.put(key, ctx.message().body().toString());
+            }
             ctx.next();
         });
 
@@ -62,6 +66,7 @@ public class Socket extends AbstractVerticle {
                         .put("lastmessage", Msg_LastMessage.getOrDefault(key, ""))
                         .put("language", Msg_CurrentLanguage.getOrDefault(key, ""))
                         .put("textselection", Msg_TextSelection.getOrDefault(key, ""))
+                        .put("drawing", Msg_Drawing.getOrDefault(key, ""))
                         .encode()
                 );
             }

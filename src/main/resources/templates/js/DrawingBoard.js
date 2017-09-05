@@ -22,6 +22,7 @@ var DrawingBoard = function (options) {
     this.canevasColorA = 255;
 
     this.container = document.createElement('div');
+    this.container.style.display = 'block';
 
     this.editable = options.editable;
 
@@ -80,8 +81,9 @@ DrawingBoard.prototype.initButtons = function() {
     btnClear.innerHTML = 'Clear';
     btnClear.className = 'btn';
     btnClear.addEventListener('click', (function() {
-        this.clearCanvas();
-        this.onClear.call(this);
+        this
+            .clearCanvas()
+            .onClear.call(this);
     }).bind(this));
     this.buttonsContainer.appendChild(btnClear);
 
@@ -238,29 +240,55 @@ DrawingBoard.prototype.getTouchPos = function(e) {
 DrawingBoard.prototype.clearCanvas = function () {
     if(this.ctx) this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     if(this.image) this.image.src = '';
+    return this;
 };
 
 DrawingBoard.prototype.dataUrl = function () {
-    return this.canvas.toDataURL().compressToBase64 ();
+    return this.canvas.toDataURL().compressToBase64();
 };
 
 DrawingBoard.prototype.updateImage = function (strImg) {
+    strImg = strImg.decompressFromBase64()
     if(this.image) {
-        this.image.src = strImg.decompressFromBase64();
+        this.image.src = strImg;
     }
+    if(this.canvas &&  this.ctx && strImg !== this.canvas.toDataURL()) {
+        var img = new Image;
+        img.src = strImg;
+        img.onload = (function(){
+            this
+                .clearCanvas()
+                .ctx.drawImage(img,0,0);
+        }).bind(this);
+    }
+    return this;
 };
 
 DrawingBoard.prototype.show = function() {
-    this.container.style.display = '';
-    if(this.canvas) {
-        this.canvas.setAttribute('width', window.innerWidth);
-        this.canvas.style.width = window.innerWidth + 'px';
-        this.canvas.setAttribute('height', window.innerHeight - 40);
-        this.canvas.style.height = (window.innerHeight - 40) + 'px';
+    if(this.container.style.display !== 'block') {
+        this.container.style.display = 'block';
+        if (this.canvas) {
+            var needClear = false;
+            if(parseInt(this.canvas.getAttribute('width')) !== window.innerWidth) {
+                this.canvas.setAttribute('width', window.innerWidth);
+                this.canvas.style.width = window.innerWidth + 'px';
+                needClear = true;
+            }
+            if(parseInt(this.canvas.getAttribute('height')) !== (window.innerHeight - 40)) {
+                this.canvas.setAttribute('height', window.innerHeight - 40);
+                this.canvas.style.height = (window.innerHeight - 40) + 'px';
+                needClear = true;
+            }
+            if(needClear) {
+                this
+                    .clearCanvas()
+                    .onClear.call(this);
+            }
+        }
     }
     return this;
 };
 DrawingBoard.prototype.hide = function() {
-    this.container.style.display = 'none';
+    if(this.container.style.display !== 'none') this.container.style.display = 'none';
     return this;
 };

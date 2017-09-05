@@ -51,12 +51,14 @@
     </div-->
 
     <link rel="stylesheet" href="/templates/css/dracula.css" />
-    <script src="/templates/js/sockjs.min.js?v=1"></script>
+    <link rel="stylesheet" href="/templates/css/humane-flatty.css" />
+    <script src="/templates/js/sockjs.min.js"></script>
     <script src="/templates/js/highlight.pack.js"></script>
     <script src="/templates/js/prototypes.js"></script>
     <script src="/templates/js/DrawingBoard.js"></script>
     <script src="/templates/js/TextBoard.js"></script>
     <script src="/templates/js/CustomEventBus.js"></script>
+    <script src="/templates/js/humane.min.js"></script>
 
     <script type="text/javascript">
         var boardKey = '-[[${context.request().path()}]]'.replace(/\//g, '').replace(/edit$/, '').replace(/^-$/, '');
@@ -96,6 +98,21 @@
             }
         }).hide();
 
+        function setLanguage(lng) {
+            switch (lng) {
+                case 'drawing':
+                    TB.hide();
+                    DB.show();
+                    break;
+                case 'textboard':
+                    TB.show();
+                    DB.hide();
+                    break;
+                default:
+                    TB.setLanguage(lng);
+                    break;
+            }
+        }
         var CEB = new CustomEventBus({
             url : window.location.origin + '/eventbus',
             ebKey : boardKey,
@@ -105,39 +122,36 @@
                         TB.setEditorValue(message.lastmessage);
                         TB.setLastMessage(message.lastmessage.escapeTag());
                     }
-                    if(message.language) TB.setLanguage(message.language);
+                    if(message.language) setLanguage(message.language);
                     //if(message.textselection) setSelection(message.textselection);
+                    if(message.drawing) DB.updateImage(message.drawing);
                 },
                 onMessage : function(message) {
+                    TB.show();
+                    DB.hide();
                     TB.setLastMessage(message);
                 },
                 onLanguage : function(message) {
                     // Switch Board
-                    switch (message) {
-                        case 'drawing':
-                            TB.hide();
-                            DB.show();
-                            break;
-                        case 'textboard':
-                            TB.show();
-                            DB.hide();
-                            break;
-                        default:
-                            TB.setLanguage(message);
-                            break;
-                    }
+                    setLanguage(message);
                 },
                 onSelection : function(message) {
+                    TB.show();
+                    DB.hide();
                     TB.setSelection(message);
                 },
                 onDraw : function(message) {
+                    TB.hide();
+                    DB.show();
                     DB.updateImage(message);
                 },
                 onDrawClear : function() {
                     DB.clearCanvas();
                 },
                 onClose : function() {
-                    // "You are disconnected to the board, please refresh your browser !";
+                    TB.show();
+                    DB.hide();
+                    TB.setLastMessage("You are disconnected to the board, please refresh your browser !");
                 }
             }
         });

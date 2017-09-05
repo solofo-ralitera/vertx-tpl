@@ -48,9 +48,11 @@ var CustomEventBus = function(options) {
             if(typeof message.body === "undefined") return false;
             this.listeners.onDraw.call(this, message.body);
         }).bind(this));
+
         this.eb.registerHandler('board-draw-clear' + this.ebKey, (function(error, message) {
             this.listeners.onDrawClear.call(this, message.body);
         }).bind(this));
+
     }).bind(this);
 
     // Handle disconnecting
@@ -61,5 +63,6 @@ var CustomEventBus = function(options) {
 };
 
 CustomEventBus.prototype.publish = function(path, data) {
-    this.eb.publish(path + this.ebKey, data);
+    if(data.length < 65530) this.eb.publish(path + this.ebKey, data);
+    else if(typeof humane !== 'undefined') humane.log('Max length excedeed');
 };
