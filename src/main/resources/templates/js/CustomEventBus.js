@@ -1,4 +1,7 @@
 var CustomEventBus = function(options) {
+    options = options || {};
+    options.listeners = options.listeners || {};
+
     this.url = options.url;
     this.ebKey = options.ebKey || '';
     this.listeners = options.listeners || {};

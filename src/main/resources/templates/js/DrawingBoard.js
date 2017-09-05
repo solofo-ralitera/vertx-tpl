@@ -1,4 +1,7 @@
 var DrawingBoard = function (options) {
+    options = options || {};
+    options.listeners = options.listeners || {};
+
     // Variables for referencing the canvas and 2dcanvas context
     this.canvas = null;
     this.ctx = null;
@@ -18,22 +21,119 @@ var DrawingBoard = function (options) {
     this.canevasColorB = 0;
     this.canevasColorA = 255;
 
-    this.container = options.container;
+    this.container = document.createElement('div');
+
+    this.editable = options.editable;
 
     // events
-    this.onDraw = options.onDraw || function () {};
-    this.onClear = options.onClear || function () {};
+    this.onDraw = options.listeners.onDraw || function () {};
+    this.onClear = options.listeners.onClear || function () {};
+    this.onClose = options.listeners.onClose || function () {};
 
-    this.initCanvas();
+    // Buttons
+    this
+        .initButtons()
+        .initCanvas()
+        .initImage();
+
+    options.container.appendChild(this.container);
+    return this;
+};
+
+DrawingBoard.prototype.initButtons = function() {
+    if(! this.editable) return this;
+
+    this.buttonsContainer = document.createElement('div');
+    var btnBack = document.createElement('button');
+    btnBack.innerHTML = 'Back';
+    btnBack.className = 'btn';
+    btnBack.addEventListener('click', (function() {
+        this.onClose.call(this);
+    }).bind(this));
+    this.buttonsContainer.appendChild(btnBack);
+
+    // Btn color
+    ['#000000', '#FFFFFF', '#FF1010', '#10FF10'].map((function(color) {
+        var btn = document.createElement('button');
+        btn.innerHTML = '&nbsp;';
+        btn.className = 'btn';
+        btn.style.backgroundColor = color;
+        btn.addEventListener('click', (function(color) {
+            this.setColor(color.toRgb().r, color.toRgb().g, color.toRgb().b);
+        }).bind(this, color));
+        this.buttonsContainer.appendChild(btn);
+    }).bind(this));
+
+    // Btn size
+    [5, 10, 15].map((function(size) {
+        var btn = document.createElement('button');
+        btn.innerHTML = '&nbsp;';
+        btn.className = 'btn';
+        btn.innerHTML = size;
+        btn.addEventListener('click', (function(size) {
+            this.setSize(size);
+        }).bind(this, size));
+        this.buttonsContainer.appendChild(btn);
+    }).bind(this));
+
+    var btnClear = document.createElement('button');
+    btnClear.innerHTML = 'Clear';
+    btnClear.className = 'btn';
+    btnClear.addEventListener('click', (function() {
+        this.clearCanvas();
+        this.onClear.call(this);
+    }).bind(this));
+    this.buttonsContainer.appendChild(btnClear);
+
+    this.container.appendChild(this.buttonsContainer);
+    return this;
+};
+
+DrawingBoard.prototype.initImage = function () {
+    if(this.editable) return this;
+    this.image = document.createElement('img');
+    this.image.src = '';
+    this.image.style.width = '100%';
+    this.container.appendChild(this.image);
+    return this;
+};
+
+
+// Set-up the canvas and add our event handlers after the page has loaded
+DrawingBoard.prototype.initCanvas = function () {
+    if(! this.editable) return this;
+
+    // Get the specific canvas element from the HTML document
+    this.canvas = document.createElement('canvas');
+    this.container.appendChild(this.canvas);
+
+    // If the browser supports the canvas tag, get the 2d drawing context for this canvas
+    if (this.canvas.getContext)
+        this.ctx = this.canvas.getContext('2d');
+
+    // Check that we have a valid context to draw on/with before adding event handlers
+    if (this.ctx) {
+        // React to mouse events on the canvas, and mouseup on the entire document
+        this.canvas.addEventListener('mousedown', this.sketchpad_mouseDown.bind(this), false);
+        this.canvas.addEventListener('mousemove', this.sketchpad_mouseMove.bind(this), false);
+        window.addEventListener('mouseup', this.sketchpad_mouseUp.bind(this), false);
+
+        // React to touch events on the canvas
+        this.canvas.addEventListener('touchstart', this.sketchpad_touchStart.bind(this), false);
+        this.canvas.addEventListener('touchmove', this.sketchpad_touchMove.bind(this), false);
+    }
+    return this;
 };
 
 DrawingBoard.prototype.setColor = function (r,g,b) {
     this.canevasColorR = r;
     this.canevasColorG = g;
     this.canevasColorB = b;
+    return this;
 };
 DrawingBoard.prototype.setSize = function (s) {
     this.canevasSize = s;
+    return this;
 };
 
 // Draws a dot at a specific position on the supplied canvas name
@@ -134,45 +234,33 @@ DrawingBoard.prototype.getTouchPos = function(e) {
     }
 };
 
-
-// Set-up the canvas and add our event handlers after the page has loaded
-DrawingBoard.prototype.initCanvas = function () {
-    // Get the specific canvas element from the HTML document
-    this.canvas = document.createElement('canvas');
-    this.container.appendChild(this.canvas);
-
-    // If the browser supports the canvas tag, get the 2d drawing context for this canvas
-    if (this.canvas.getContext)
-        this.ctx = this.canvas.getContext('2d');
-
-    // Check that we have a valid context to draw on/with before adding event handlers
-    if (this.ctx) {
-        // React to mouse events on the canvas, and mouseup on the entire document
-        this.canvas.addEventListener('mousedown', this.sketchpad_mouseDown.bind(this), false);
-        this.canvas.addEventListener('mousemove', this.sketchpad_mouseMove.bind(this), false);
-        window.addEventListener('mouseup', this.sketchpad_mouseUp.bind(this), false);
-
-        // React to touch events on the canvas
-        this.canvas.addEventListener('touchstart', this.sketchpad_touchStart.bind(this), false);
-        this.canvas.addEventListener('touchmove', this.sketchpad_touchMove.bind(this), false);
-    }
-};
-
-    // Clear the canvas context using the canvas width and height
+// Clear the canvas context using the canvas width and height
 DrawingBoard.prototype.clearCanvas = function () {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.onClear.call(this);
+    if(this.ctx) this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    if(this.image) this.image.src = '';
 };
 
 DrawingBoard.prototype.dataUrl = function () {
-    return this.canvas.toDataURL();
+    return this.canvas.toDataURL().compressToBase64 ();
 };
 
-DrawingBoard.prototype.setDataUrl = function (strImg) {
-    var img = new Image;
-    img.src = strImg;
-    img.onload = (function(){
-        this.ctx.drawImage(img,0,0);
-    }).bind(this);
+DrawingBoard.prototype.updateImage = function (strImg) {
+    if(this.image) {
+        this.image.src = strImg.decompressFromBase64();
+    }
 };
 
+DrawingBoard.prototype.show = function() {
+    this.container.style.display = '';
+    if(this.canvas) {
+        this.canvas.setAttribute('width', window.innerWidth);
+        this.canvas.style.width = window.innerWidth + 'px';
+        this.canvas.setAttribute('height', window.innerHeight - 40);
+        this.canvas.style.height = (window.innerHeight - 40) + 'px';
+    }
+    return this;
+};
+DrawingBoard.prototype.hide = function() {
+    this.container.style.display = 'none';
+    return this;
+};

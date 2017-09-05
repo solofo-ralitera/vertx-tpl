@@ -1,57 +1,112 @@
 var TextBoard = function(options) {
-    this.highlightBoard = false;
+    options = options || {};
+    options.listeners = options.listeners || {};
+
+    this.highlightBoard = true;
     this.lastmessage = '';
 
-
-    this.container = options.container;
     this.editable = options.editable;
-    //this.sketchtextapp = document.createElement('div');
 
+    // Events
+    this.onKeyUp = options.listeners.onKeyUp ||function() {};
+    this.onLanguageChange = options.listeners.onLanguageChange ||function() {};
+    this.onTextSelection = options.listeners.onTextSelection ||function() {};
+
+   this
+        .initContainer()
+        .initEditContainer()
+        .initTextArea()
+        .initBtnContainer()
+       .initPreview();
+
+    options.container.appendChild(this.container);
+    window.setInterval(this.welcome.bind(this), 30000);
+    return this;
+};
+
+TextBoard.prototype.initContainer = function() {
+    this.container = document.createElement('div');
+    this.container.className = 'text-board';
+    this.container.style['display'] = 'grid';
+    this.container.style['grid-template-columns'] = '40% 60%';
+    this.container.style['grid-gap'] = '10px';
+    this.container.style['height'] = '100%';
+    this.container.style['width'] = '99%';
+    return this;
+};
+
+TextBoard.prototype.initEditContainer = function() {
+    this.editContainer = document.createElement('div');
+    this.editContainer.className = 'text-board-edit';
+    this.editContainer.style['grid-column-start'] = '1';
+    this.editContainer.style['grid-column-end'] = '2';
+    this.editContainer.style['grid-row-start'] = '1';
+    if(this.editable) this.container.appendChild(this.editContainer);
+    return this;
+};
+
+TextBoard.prototype.initTextArea = function() {
     this.textarea = document.createElement('textarea');
-    this.textarea.style.width = '99%';
-    this.textarea.style.height = '80%';
+    this.textarea.style.width = '100%';
+    this.textarea.style['max-width'] = '100%';
+    this.textarea.style.height = '100%';
+    this.textarea.style['max-height'] = '100%';
     this.textarea.style['max-height'] = '600px';
     this.textarea.addEventListener('keyup', (function(e) {
         if(window.getSelection().toString() === '')
             this.onKeyUp.call(this, e.target.value)
     }).bind(this), false);
-    this.textarea.addEventListener('select', function(e) {
+    this.textarea.addEventListener('select', function() {
         var sel = window.getSelection().toString();
         if(sel && sel.length > 2) {
             this.onTextSelection.call(this, sel)
         }
     }, false);
+    this.editContainer.appendChild(this.textarea);
+    return this;
+};
 
-    // Ctrl buttons
+TextBoard.prototype.initBtnContainer = function() {
     this.btnContainer = document.createElement('div');
-    ["none", "html", "javascript", "css", "json", "python", "php", "board"].map((function(item) {
+    ["html", "javascript", "css", "json", "python", "php", "drawing"].map((function(item) {
         var btn = document.createElement('button');
         btn.innerHTML = item;
         btn.className = 'btn';
         btn.value = item;
         btn.addEventListener('click', (function(e) {
-            this.sendLanguage.call(this, e.target.value);
+            this.onLanguageChange.call(this, e.target.value);
         }).bind(this), false);
         this.btnContainer.appendChild(btn);
     }).bind(this));
+    this.editContainer.appendChild(this.btnContainer);
+    return this;
+};
+
+TextBoard.prototype.initPreview = function () {
+    this.previewContainer = document.createElement('div');
+    this.previewContainer.className = 'text-board-preview';
+    this.previewContainer.style['grid-column-start'] = this.editable? '2' : '1';
+    this.previewContainer.style['grid-column-end'] = '3';
+    this.previewContainer.style['grid-row-start'] = '1';
 
     this.pre = document.createElement('pre');
     this.code = document.createElement('code');
-
-
+    this.code.className = 'html';
     this.pre.appendChild(this.code);
-    if(this.editable) this.container.appendChild(this.textarea);
-    if(this.editable) this.container.appendChild(this.btnContainer);
-    this.container.appendChild(this.pre);
+    this.previewContainer.appendChild(this.pre);
 
-    window.setInterval(this.welcome.bind(this), 30000);
+    this.container.appendChild(this.previewContainer);
+
+    return this;
 };
 
-TextBoard.prototype.onKeyUp = function(value) {
-    //
+TextBoard.prototype.show = function() {
+    this.container.style.display = 'grid';
+    return this;
 };
-TextBoard.prototype.onTextSelection = function(value) {
-    //
+TextBoard.prototype.hide = function() {
+    this.container.style.display = 'none';
+    return this;
 };
 
 // Update board preview
@@ -69,15 +124,12 @@ TextBoard.prototype.setLastMessage = function(msg, selection) {
         hljs.highlightBlock(this.code);
         hljs.lineNumbersBlock(this.code);
     }
+    return this;
 };
-
-TextBoard.prototype.sendLanguage = function(btn) {
-    //
-};
-
 
 TextBoard.prototype.setEditorValue = function(val){
     this.textarea.value = val;
+    return this;
 };
 
 // Update language highlighting
@@ -85,6 +137,7 @@ TextBoard.prototype.setLanguage = function(lng) {
     switch (lng) {
         case 'none':
             this.highlightBoard = false;
+            this.code.className = '';
             break;
         default :
             this.highlightBoard = true;
@@ -92,12 +145,14 @@ TextBoard.prototype.setLanguage = function(lng) {
             break;
     }
     this.setLastMessage();
+    return this;
 };
 
 // Update board text selection
 TextBoard.prototype.setSelection = function(sel) {
     this.highlightBoard = false;
     this.setLastMessage(this.lastmessage, sel);
+    return this;
 };
 
 // Show welcom message
@@ -109,29 +164,6 @@ TextBoard.prototype.welcome = function() {
         '|__) /  \\  /\\  |__) |  \\\n' +
         '|__) \\__/ /~~\\ |  \\ |__/  o o o';
     if(this.lastmessage === '') this.code.innerHTML = msg;
+    return this;
 };
 
-// Show canevas board
-TextBoard.prototype.switchBoard = function(b) {
-    return false;
-    if(b) {
-        if(document.getElementById('sketchpadapp')) {
-            document.getElementById('sketchtextapp').style.display = 'none';
-            document.getElementById('text-preview').style.display = 'none';
-            document.getElementById('sketchpadapp').style.display = '';
-            //dBoard.initCanvas('sketchpad');
-        }else {
-            document.getElementById('text-preview').style.display = 'none';
-            document.getElementById('image-preview').style.display = '';
-        }
-    } else {
-        if(document.getElementById('sketchpadapp')) {
-            document.getElementById('sketchtextapp').style.display = '';
-            document.getElementById('text-preview').style.display = '';
-            document.getElementById('sketchpadapp').style.display = 'none';
-        }else {
-            document.getElementById('text-preview').style.display = '';
-            document.getElementById('image-preview').style.display = 'none';
-        }
-    }
-};

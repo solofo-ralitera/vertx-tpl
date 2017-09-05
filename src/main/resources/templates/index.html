@@ -65,13 +65,36 @@
         // Text Board
         var TB = new TextBoard({
             container : document.getElementById('board-content'),
-            editable : /\/edit$/.test('[[${context.request().path()}]]')
+            editable : /\/edit$/.test('[[${context.request().path()}]]'),
+            listeners : {
+                onKeyUp : function(value) {
+                    CEB.publish('board-message', value);
+                },
+                onLanguageChange : function(value) {
+                    CEB.publish('board-language', value);
+                },
+                onTextSelection : function(value) {
+                    CEB.publish('board-textselection', value);
+                }
+            }
         });
 
         // Drawing board
         var DB = new DrawingBoard({
             container : document.getElementById('board-content'),
-        });
+            editable : /\/edit$/.test('[[${context.request().path()}]]'),
+            listeners : {
+                onDraw : (function() {
+                    CEB.publish('board-draw-draw', DB.dataUrl());
+                }).debounce(100),
+                onClose : function() {
+                    CEB.publish('board-language', 'textboard');
+                },
+                onClear : function() {
+                    CEB.publish('board-draw-clear', '')
+                }
+            }
+        }).hide();
 
         var CEB = new CustomEventBus({
             url : window.location.origin + '/eventbus',
@@ -89,45 +112,35 @@
                     TB.setLastMessage(message);
                 },
                 onLanguage : function(message) {
-                    TB.setLanguage(message);
+                    // Switch Board
+                    switch (message) {
+                        case 'drawing':
+                            TB.hide();
+                            DB.show();
+                            break;
+                        case 'textboard':
+                            TB.show();
+                            DB.hide();
+                            break;
+                        default:
+                            TB.setLanguage(message);
+                            break;
+                    }
                 },
                 onSelection : function(message) {
                     TB.setSelection(message);
                 },
                 onDraw : function(message) {
-                    if(document.getElementById('image-preview')) {
-                        document.getElementById('image-preview').src = message;
-                    } else {
-                        DB.setDataUrl(message);
-                    }
+                    DB.updateImage(message);
                 },
                 onDrawClear : function() {
-                    if(document.getElementById('image-preview')) {
-                        document.getElementById('image-preview').src = '';
-                    } else {
-                        DB.clearCanvas();
-                    }
+                    DB.clearCanvas();
                 },
                 onClose : function() {
-                    document.getElementById("preboard").innerHTML = "You are disconnected to the board, please refresh your browser !";
+                    // "You are disconnected to the board, please refresh your browser !";
                 }
             }
         });
-
-        DB.onDraw = (function() {
-            CEB.publish('board-draw-draw', DB.dataUrl());
-        }).debounce(100);
-
-        TB.sendLanguage = function(value) {
-            CEB.publish('board-language', value);
-        };
-        TB.onKeyUp = function(value) {
-            CEB.publish('board-message', value);
-        };
-        TB.onTextSelection = function(value) {
-            CEB.publish('board-textselection', value);
-        };
-
     </script>
 </body>
 </html>
