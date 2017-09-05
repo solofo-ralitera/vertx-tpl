@@ -27,7 +27,7 @@
             container : document.getElementById('board-content'),
             editable : /\/edit$/.test('[[${context.request().path()}]]'),
             listeners : {
-                onKeyUp : function(value) {
+                onEdit : function(value) {
                     CEB.publish('board-message', value);
                 },
                 onLanguageChange : function(value) {

@@ -8,7 +8,7 @@ var TextBoard = function(options) {
     this.editable = options.editable;
 
     // Events
-    this.onKeyUp = options.listeners.onKeyUp ||function() {};
+    this.onEdit = options.listeners.onEdit ||function() {};
     this.onLanguageChange = options.listeners.onLanguageChange ||function() {};
     this.onTextSelection = options.listeners.onTextSelection ||function() {};
 
@@ -54,7 +54,7 @@ TextBoard.prototype.initTextArea = function() {
     this.textarea.style['max-height'] = '600px';
     this.textarea.addEventListener('keyup', (function(e) {
         if(window.getSelection().toString() === '')
-            this.onKeyUp.call(this, e.target.value)
+            this.onEdit.call(this, e.target.value)
     }).bind(this), false);
     this.textarea.addEventListener('select', function() {
         var sel = window.getSelection().toString();
