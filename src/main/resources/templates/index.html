@@ -7,48 +7,6 @@
 </head>
 <body>
     <div id="board-content" class="board-content"></div>
-    <!--div class="board-content" id="board-content">
-        <div class="textboard">
-            <div id="sketchtextapp">
-                <textarea style="padding-left:10px;width:99%;height:80%;max-height:600px;" id="textboard"></textarea>
-                <div style="text-align: center;">
-                </div>
-            </div>
-            <div id="sketchpadapp" style="display: none;">
-                <div class="textboard">
-                    <button onclick="sendLanguage({value:'none'});" class="btn">Return</button>
-                    <button onclick="DB.setColor(  0,   0,   0);" style="background-color: rgb(  0,   0,   0);" class="btn">&nbsp;</button>
-                    <button onclick="DB.setColor(255, 255, 255);" style="background-color: rgb(255, 255, 255);" class="btn">&nbsp;</button>
-                    <button onclick="DB.setColor(255,  10,  10);" style="background-color: rgb(255,  10,  10);" class="btn">&nbsp;</button>
-                    <button onclick="DB.setColor( 60, 145,  30);" style="background-color: rgb( 60, 145,  30);" class="btn">&nbsp;</button>
-                    <button onclick="DB.setSize( 5);" class="btn"> 5</button>
-                    <button onclick="DB.setSize(10);" class="btn">10</button>
-                    <button onclick="DB.setSize(15);" class="btn">15</button>
-                    <button onclick="CEB.publish('board-draw-clear', '');" class="btn">Clear</button>
-                </div>
-                <canvas id="sketchpad" height="600" width="800"></canvas>
-            </div>
-
-            <script type="text/javascript">
-                // Send language event change
-                function sendLanguage(btn) {
-                    CEB.publish('board-language', btn.value);
-                }
-                document.getElementById('textboard').onkeyup = function() {
-                    if(window.getSelection().toString() === '')
-                        CEB.publish('board-message', this.value);
-                };
-                document.getElementById('textboard').addEventListener('select', function(e) {
-                    var sel = window.getSelection().toString();
-                    if(sel && sel.length > 2) {
-                        CEB.publish('board-textselection', sel);
-                    }
-                }, false);
-            </script>
-        </div>
-        <pre class="nospace" id="text-preview"><code id="preboard"></code></pre>
-        <img id="image-preview" />
-    </div-->
 
     <link rel="stylesheet" href="/templates/css/dracula.css" />
     <link rel="stylesheet" href="/templates/css/humane-flatty.css" />
