@@ -23,16 +23,16 @@ var CustomEventBus = function(options) {
         this.eb.registerHandler('board-newconnection', (function(error, message) {
             if(error) return false;
             if(typeof message.body === "undefined") return false;
-            if(message.body.lastmessage) message.body.lastmessage = message.body.lastmessage.decompressFromUTF16();
-            if(message.body.drawing) message.body.drawing = message.body.drawing.decompressFromUTF16();
-            if(message.body.textselection) message.body.textselection = message.body.textselection.decompressFromUTF16();
+            if(message.body.lastmessage) message.body.lastmessage = this.decompress(message.body.lastmessage);
+            if(message.body.drawing) message.body.drawing = this.decompress(message.body.drawing);
+            if(message.body.textselection) message.body.textselection = this.decompress(message.body.textselection);
             this.listeners.onConnection.call(this, message.body);
         }).bind(this));
 
         // handle board content
         this.eb.registerHandler('board-message' + this.ebKey, (function(error, message) {
             if(typeof message.body === "undefined") return false;
-            this.listeners.onMessage.call(this, message.body.decompressFromUTF16().escapeTag());
+            this.listeners.onMessage.call(this, this.decompress(message.body).escapeTag());
         }).bind(this));
 
         // handle language change
@@ -44,7 +44,7 @@ var CustomEventBus = function(options) {
         // handle text selection
         this.eb.registerHandler('board-textselection' + this.ebKey, (function(error, message) {
             if(typeof message.body === "undefined") return false;
-            this.listeners.onSelection.call(this, message.body.decompressFromUTF16());
+            this.listeners.onSelection.call(this, this.decompress(message.body));
         }).bind(this));
 
         // handle drawing
@@ -66,9 +66,19 @@ var CustomEventBus = function(options) {
 
 };
 
+CustomEventBus.prototype.compress = function(str) {
+    if(str !== '') return str.compressToUTF16();
+    return str;
+};
+
+CustomEventBus.prototype.decompress = function(str) {
+    if(str !== '') return str.decompressFromUTF16();
+    return str;
+};
+
 CustomEventBus.prototype.publish = function(path, data) {
     if(path === 'board-message' || path === 'board-textselection' || path === 'board-draw-draw') {
-        data = data.compressToUTF16();
+        if(data !== '') data = this.compress(data);
     }
     if(data.length < 65530) this.eb.publish(path + this.ebKey, data);
     else if(typeof humane !== 'undefined') humane.log('Max length excedeed');

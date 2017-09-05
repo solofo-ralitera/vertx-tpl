@@ -56,12 +56,12 @@ TextBoard.prototype.initTextArea = function() {
         if(window.getSelection().toString() === '')
             this.onEdit.call(this, e.target.value)
     }).bind(this), false);
-    this.textarea.addEventListener('select', function() {
+    this.textarea.addEventListener('select', (function() {
         var sel = window.getSelection().toString();
         if(sel && sel.length > 2) {
             this.onTextSelection.call(this, sel)
         }
-    }, false);
+    }).bind(this), false);
     this.editContainer.appendChild(this.textarea);
     return this;
 };
@@ -111,13 +111,13 @@ TextBoard.prototype.hide = function() {
 
 // Update board preview
 TextBoard.prototype.setLastMessage = function(msg, selection) {
-    if(msg) this.lastmessage = msg;
+    if(typeof msg !== 'undefined') this.lastmessage = msg;
     if(typeof selection !== 'undefined') {
         this.code.innerHTML = this.lastmessage.replace(
             new RegExp('('+selection.escapeReg()+')', 'g'),
             '<span class="textselected">$1</span>')
         ;
-    }else {
+    } else {
         this.code.innerHTML = this.lastmessage
     }
     if(this.highlightBoard) {
