@@ -60,15 +60,15 @@ public class Socket extends AbstractVerticle {
         sockJSHandler.bridge(options, event -> {
             if (event.type() == BridgeEventType.SOCKET_CREATED) {
                 String key = event.socket().uri().split("/")[2].replace("-", "");
-                event.socket().write(new JsonObject()
-                        .put("address", "board-newconnection")
-                        .put("body", "init board")
+                JsonObject body = new JsonObject()
                         .put("lastmessage", Msg_LastMessage.getOrDefault(key, ""))
                         .put("language", Msg_CurrentLanguage.getOrDefault(key, ""))
                         .put("textselection", Msg_TextSelection.getOrDefault(key, ""))
-                        .put("drawing", Msg_Drawing.getOrDefault(key, ""))
-                        .encode()
-                );
+                        .put("drawing", Msg_Drawing.getOrDefault(key, ""));
+                event.socket().write(new JsonObject()
+                        .put("address", "board-newconnection")
+                        .put("body", body)
+                        .encode());
             }
             else if (event.type() == BridgeEventType.RECEIVE) {
                 //System.out.println(event.socket().writeHandlerID());

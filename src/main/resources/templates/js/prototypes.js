@@ -30,6 +30,13 @@ String.prototype.compressToBase64 = function() {
 String.prototype.decompressFromBase64 = function() {
     return LZString.decompressFromBase64(this);
 };
+String.prototype.compressToUTF16 = function() {
+    return LZString.compressToUTF16(this);
+};
+String.prototype.decompressFromUTF16 = function() {
+    return LZString.decompressFromUTF16(this);
+};
+
 
 Function.prototype.throttle = function(delay) {
     var fn = this;

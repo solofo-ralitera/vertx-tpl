@@ -244,11 +244,10 @@ DrawingBoard.prototype.clearCanvas = function () {
 };
 
 DrawingBoard.prototype.dataUrl = function () {
-    return this.canvas.toDataURL().compressToBase64();
+    return this.canvas.toDataURL();
 };
 
 DrawingBoard.prototype.updateImage = function (strImg) {
-    strImg = strImg.decompressFromBase64()
     if(this.image) {
         this.image.src = strImg;
     }
