@@ -36,7 +36,14 @@ String.prototype.compressToUTF16 = function() {
 String.prototype.decompressFromUTF16 = function() {
     return LZString.decompressFromUTF16(this);
 };
+String.prototype.truncate = function(width) {
+    return this.match(new RegExp('.{1,'+parseInt(width)+'}', 'g'));
+};
 
+// generateId :: Integer -> String
+function RandomString(len) {
+    return (Math.random().toString(36)+'00000000000000000').slice(2, len+2);
+}
 
 Function.prototype.throttle = function(delay) {
     var fn = this;
@@ -59,3 +66,11 @@ Function.prototype.debounce = function(delay) {
 };
 
 
+Object.prototype.removeItem = function (key) {
+    if (!this.hasOwnProperty(key))
+        return
+    if (isNaN(parseInt(key)) || !(this instanceof Array))
+        delete this[key]
+    else
+        this.splice(key, 1)
+};

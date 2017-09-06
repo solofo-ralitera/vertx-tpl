@@ -2,6 +2,8 @@ var CustomEventBus = function(options) {
     options = options || {};
     options.listeners = options.listeners || {};
 
+    this.messagesBuffer = [];
+    this.message = '';
     this.url = options.url;
     this.ebKey = options.ebKey || '';
     this.listeners = options.listeners || {};
@@ -32,29 +34,34 @@ var CustomEventBus = function(options) {
         // handle board content
         this.eb.registerHandler('board-message' + this.ebKey, (function(error, message) {
             if(typeof message.body === "undefined") return false;
-            this.listeners.onMessage.call(this, this.decompress(message.body).escapeTag());
+            this.message = this.getMessage(message.body, true);
+            if(this.message !== false) this.listeners.onMessage.call(this, this.message.escapeTag());
         }).bind(this));
 
         // handle language change
         this.eb.registerHandler('board-language' + this.ebKey, (function(error, message) {
             if(typeof message.body === "undefined") return false;
-            this.listeners.onLanguage.call(this, message.body.escapeTag());
+            this.message = this.getMessage(message.body, false);
+            if(this.message !== false) this.listeners.onLanguage.call(this, this.message.escapeTag());
         }).bind(this));
 
         // handle text selection
         this.eb.registerHandler('board-textselection' + this.ebKey, (function(error, message) {
             if(typeof message.body === "undefined") return false;
-            this.listeners.onSelection.call(this, this.decompress(message.body));
+            this.message = this.getMessage(message.body, true);
+            if(this.message !== false) this.listeners.onSelection.call(this, this.message);
         }).bind(this));
 
         // handle drawing
         this.eb.registerHandler('board-draw-draw' + this.ebKey, (function(error, message) {
             if(typeof message.body === "undefined") return false;
-            this.listeners.onDraw.call(this, message.body.decompressFromUTF16());
+            this.message = this.getMessage(message.body, true);
+            if(this.message !== false) this.listeners.onDraw.call(this, this.message);
         }).bind(this));
 
         this.eb.registerHandler('board-draw-clear' + this.ebKey, (function(error, message) {
-            this.listeners.onDrawClear.call(this, message.body);
+            this.message = this.getMessage(message.body, false);
+            if(this.message !== false) this.listeners.onDrawClear.call(this, this.message);
         }).bind(this));
 
     }).bind(this);
@@ -66,20 +73,45 @@ var CustomEventBus = function(options) {
 
 };
 
+CustomEventBus.prototype.getMessage = function(message, compress) {
+    if(compress) message = this.decompress(message);
+    var aMessage = message.split('::');
+    var key = aMessage[0];
+    var nums = aMessage[1].split('-');
+    var msg = aMessage[2];
+
+    if(! this.messagesBuffer[key]) this.messagesBuffer[key] = [''];
+    this.messagesBuffer[key][nums[0]] = msg;
+
+    // Message complete
+    if(this.messagesBuffer[key].length === parseInt(nums[1])) {
+        message = this.messagesBuffer[key].join('');
+        this.messagesBuffer.removeItem(key);
+        return message;
+    }
+    return false;
+};
+
 CustomEventBus.prototype.compress = function(str) {
-    if(str !== '') return str.compressToUTF16();
+    if(str !== '') return str.compressToBase64();
     return str;
 };
 
 CustomEventBus.prototype.decompress = function(str) {
-    if(str !== '') return str.decompressFromUTF16();
+    if(str !== '') return str.decompressFromBase64();
     return str;
 };
 
 CustomEventBus.prototype.publish = function(path, data) {
-    if(path === 'board-message' || path === 'board-textselection' || path === 'board-draw-draw') {
-        if(data !== '') data = this.compress(data);
-    }
-    if(data.length < 65530) this.eb.publish(path + this.ebKey, data);
-    else if(typeof humane !== 'undefined') humane.log('Max length excedeed');
+    //humane.log('Max length excedeed');
+    var bufferSize = 32 * 1024;
+    var aData = data.truncate(bufferSize);
+    var messageKey = RandomString(10);
+    aData.map((function(item, idx, originalArray) {
+        item = [messageKey, idx + '-' + originalArray.length, item].join('::');
+        if(path === 'board-message' || path === 'board-textselection' || path === 'board-draw-draw') {
+            if(item !== '') item = this.compress(item);
+        }
+        this.eb.publish(path + this.ebKey, item);
+    }).bind(this));
 };

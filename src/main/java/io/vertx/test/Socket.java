@@ -4,6 +4,7 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.eventbus.SendContext;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -23,6 +24,7 @@ public class Socket extends AbstractVerticle {
     private Map<String, String> Msg_CurrentLanguage = new HashMap<>();
     private Map<String, String> Msg_TextSelection = new HashMap<>();
     private Map<String, String> Msg_Drawing = new HashMap<>();
+    private static final int BUFF_SIZE = 128 * 1024;
 
     @Override
     public void start(final Future<Void> startFuture) {
@@ -94,6 +96,10 @@ public class Socket extends AbstractVerticle {
                 }
             });
         });
+
+        //HttpServerOptions hsOptions = new HttpServerOptions();
+        //hsOptions.setReceiveBufferSize(BUFF_SIZE);
+        //hsOptions.setSendBufferSize(BUFF_SIZE);
 
         vertx
                 .createHttpServer()
