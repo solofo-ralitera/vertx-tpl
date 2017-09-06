@@ -3,51 +3,116 @@
 <head>
     <title>TZ Whiteboard</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <link rel="stylesheet" href="/templates/dracula.css">
+    <link rel="stylesheet" href="/templates/css/default.css" />
 </head>
-<body class="nospace">
-    <div th:if="${context.request().path() == '/slf'}">
-        <textarea style="margin:1%;padding:10px;width:90%;min-height:100px;" id="textboard"></textarea>
-    </div>
-    <pre class="nospace"><code id="preboard" class="python"></code></pre>
+<body>
+    <div id="board-content" class="board-content"></div>
 
-    <script src="/templates/sockjs.min.js?v=1"></script>
-    <script src="/templates/highlight.pack.js"></script>
-    <style>
-        .nospace {
-            padding : 0px;
-            margin : 0px;
-        }
-        .hljs-ln-numbers {
-            width: 25px;
-            border-right: 1px solid gray;
-        }
-        .hljs-ln-code .hljs-ln-line{
-            margin-left: 10px;
-        }
-    </style>
+    <link rel="stylesheet" href="/templates/css/dracula.css" />
+    <link rel="stylesheet" href="/templates/css/humane-flatty.css" />
+    <script src="/templates/js/sockjs.min.js"></script>
+    <script src="/templates/js/highlight.pack.js"></script>
+    <script src="/templates/js/prototypes.js"></script>
+    <script src="/templates/js/DrawingBoard.js"></script>
+    <script src="/templates/js/TextBoard.js"></script>
+    <script src="/templates/js/CustomEventBus.js"></script>
+    <script src="/templates/js/humane.min.js"></script>
 
     <script type="text/javascript">
-        var highlightBoard = true;
-        var eb = new EventBus(window.location.href.replace(/[a-z]*$/ig, "") + 'eventbus');
-        eb.onopen = function() {
-            // set a handler to receive a message
-            eb.registerHandler('board-message', function(error, message) {
-                document.getElementById("preboard").innerHTML = message.body;
-                if(highlightBoard) {
-                    hljs.highlightBlock(document.getElementById('preboard'));
-                    hljs.lineNumbersBlock(document.getElementById('preboard'));
+        var boardKey = '-[[${context.request().path()}]]'.replace(/\//g, '').replace(/edit$/, '').replace(/^-$/, '');
+        if(boardKey === '') boardKey = '-defaultboardsocketkey';
+
+        // Text Board
+        var TB = new TextBoard({
+            container : document.getElementById('board-content'),
+            editable : /\/edit$/.test('[[${context.request().path()}]]'),
+            listeners : {
+                onEdit : function(value) {
+                    CEB.publish('board-message', value);
+                },
+                onLanguageChange : function(value) {
+                    CEB.publish('board-language', value);
+                },
+                onTextSelection : function(value) {
+                    CEB.publish('board-textselection', value);
                 }
-            });
-        };
-        eb.onclose = function() {
-            document.getElementById("preboard").innerHTML = "You are disconnected to the board !";
-        };
-        if(document.getElementById('textboard')) {
-            document.getElementById('textboard').onkeyup = function() {
-                eb.send('board-message', this.value);
-            };
+            }
+        });
+
+        // Drawing board
+        var DB = new DrawingBoard({
+            container : document.getElementById('board-content'),
+            editable : /\/edit$/.test('[[${context.request().path()}]]'),
+            listeners : {
+                onDraw : (function() {
+                    CEB.publish('board-draw-draw', DB.dataUrl());
+                }).debounce(100),
+                onClose : function() {
+                    CEB.publish('board-language', 'textboard');
+                },
+                onClear : function() {
+                    CEB.publish('board-draw-clear', '')
+                }
+            }
+        }).hide();
+
+        function setLanguage(lng) {
+            switch (lng) {
+                case 'drawing':
+                    TB.hide();
+                    DB.show();
+                    break;
+                case 'textboard':
+                    TB.show();
+                    DB.hide();
+                    break;
+                default:
+                    TB.setLanguage(lng);
+                    break;
+            }
         }
+        var CEB = new CustomEventBus({
+            url : window.location.origin + '/eventbus',
+            ebKey : boardKey,
+            listeners : {
+                onConnection : function (message) {
+                    if(message.lastmessage) {
+                        TB.setEditorValue(message.lastmessage);
+                        TB.setLastMessage(message.lastmessage.escapeTag());
+                    }
+                    if(message.language) setLanguage(message.language);
+                    //if(message.textselection) setSelection(message.textselection);
+                    if(message.drawing) DB.updateImage(message.drawing);
+                },
+                onMessage : function(message) {
+                    TB.show();
+                    DB.hide();
+                    TB.setLastMessage(message);
+                },
+                onLanguage : function(message) {
+                    // Switch Board
+                    setLanguage(message);
+                },
+                onSelection : function(message) {
+                    TB.show();
+                    DB.hide();
+                    TB.setSelection(message);
+                },
+                onDraw : function(message) {
+                    TB.hide();
+                    DB.show();
+                    DB.updateImage(message);
+                },
+                onDrawClear : function() {
+                    DB.clearCanvas();
+                },
+                onClose : function() {
+                    TB.show();
+                    DB.hide();
+                    TB.setLastMessage("You are disconnected to the board, please refresh your browser !");
+                }
+            }
+        });
     </script>
 </body>
 </html>

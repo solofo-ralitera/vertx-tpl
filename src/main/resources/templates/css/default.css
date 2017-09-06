@@ -1,0 +1,65 @@
+html, body {
+    margin: 0px;
+    padding: 0px;
+    outline: 0px;
+    height: 100%;
+    min-height: 100%;
+}
+.nospace {
+    padding : 0px;
+    margin : 0px;
+}
+.hljs-ln-numbers {
+    width: 30px;
+    border-right: 1px solid gray;
+}
+.hljs-ln-code .hljs-ln-line{
+    margin-left: 10px;
+}
+.btn{
+    min-width: 50px;
+    min-height: 20px;
+    margin : 0px 2px;
+    text-transform: uppercase;
+}
+.textselected {
+    background-color: cornflowerblue;
+    color: white;
+}
+#sketchtextapp {
+    height: 100%;
+}
+#sketchpadapp {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+#sketchpad {
+    float:left;
+    height:600px;
+    width:800px;
+    border:2px solid #888;
+    border-radius:4px;
+    position:relative; /* Necessary for correct mouse co-ords in Firefox */
+}
+#image-preview {
+    width: 100%;
+}
+.board-content {
+    height:100%;
+}
+
+.text-board-edit textarea {
+    max-width: 100%;
+    width: 100%;
+    height: 100%;
+    max-height:100%;
+}
+
+.text-board-preview pre {
+    margin: 0px;
+    padding: 0px;
+}
