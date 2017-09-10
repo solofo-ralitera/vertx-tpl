@@ -37,11 +37,11 @@ String.prototype.decompressFromUTF16 = function() {
     return LZString.decompressFromUTF16(this);
 };
 String.prototype.truncate = function(width) {
-    return this.match(new RegExp('.{1,'+parseInt(width)+'}', 'g'));
+    return this.match(new RegExp('[\\s\\S]{1,'+parseInt(width)+'}', 'g')) || [];
 };
 
 // generateId :: Integer -> String
-function RandomString(len) {
+String.random = function(len) {
     return (Math.random().toString(36)+'00000000000000000').slice(2, len+2);
 }
 

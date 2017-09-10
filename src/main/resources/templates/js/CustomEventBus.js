@@ -3,7 +3,6 @@ var CustomEventBus = function(options) {
     options.listeners = options.listeners || {};
 
     this.messagesBuffer = [];
-    this.message = '';
     this.url = options.url;
     this.ebKey = options.ebKey || '';
     this.listeners = options.listeners || {};
@@ -25,43 +24,41 @@ var CustomEventBus = function(options) {
         this.eb.registerHandler('board-newconnection', (function(error, message) {
             if(error) return false;
             if(typeof message.body === "undefined") return false;
-            if(message.body.lastmessage) message.body.lastmessage = this.decompress(message.body.lastmessage);
-            if(message.body.drawing) message.body.drawing = this.decompress(message.body.drawing);
-            if(message.body.textselection) message.body.textselection = this.decompress(message.body.textselection);
+            if(message.body.lastmessage) message.body.lastmessage = this.getMessage(message.body.lastmessage, true);
+            if(message.body.drawing) message.body.drawing = this.getMessage(message.body.drawing, true);
+            if(message.body.textselection) message.body.textselection = this.getMessage(message.body.textselection, true);
+            if(message.body.language) message.body.language = this.getMessage(message.body.language, false);
             this.listeners.onConnection.call(this, message.body);
         }).bind(this));
 
         // handle board content
         this.eb.registerHandler('board-message' + this.ebKey, (function(error, message) {
+            if(error) console.log(error);
             if(typeof message.body === "undefined") return false;
-            this.message = this.getMessage(message.body, true);
-            if(this.message !== false) this.listeners.onMessage.call(this, this.message.escapeTag());
+            this.processMessage(this.listeners.onMessage, message.body.escapeTag(), true);
         }).bind(this));
 
         // handle language change
         this.eb.registerHandler('board-language' + this.ebKey, (function(error, message) {
             if(typeof message.body === "undefined") return false;
-            this.message = this.getMessage(message.body, false);
-            if(this.message !== false) this.listeners.onLanguage.call(this, this.message.escapeTag());
+            this.processMessage(this.listeners.onLanguage, message.body, false);
         }).bind(this));
 
         // handle text selection
         this.eb.registerHandler('board-textselection' + this.ebKey, (function(error, message) {
             if(typeof message.body === "undefined") return false;
-            this.message = this.getMessage(message.body, true);
-            if(this.message !== false) this.listeners.onSelection.call(this, this.message);
+            this.processMessage(this.listeners.onSelection, message.body.escapeTag(), true);
         }).bind(this));
 
         // handle drawing
         this.eb.registerHandler('board-draw-draw' + this.ebKey, (function(error, message) {
             if(typeof message.body === "undefined") return false;
-            this.message = this.getMessage(message.body, true);
-            if(this.message !== false) this.listeners.onDraw.call(this, this.message);
+            this.processMessage(this.listeners.onDraw, message.body, true);
         }).bind(this));
 
         this.eb.registerHandler('board-draw-clear' + this.ebKey, (function(error, message) {
-            this.message = this.getMessage(message.body, false);
-            if(this.message !== false) this.listeners.onDrawClear.call(this, this.message);
+            if(typeof message.body === "undefined") return false;
+            this.processMessage(this.listeners.onDrawClear, message.body, false);
         }).bind(this));
 
     }).bind(this);
@@ -92,6 +89,12 @@ CustomEventBus.prototype.getMessage = function(message, compress) {
     return false;
 };
 
+CustomEventBus.prototype.processMessage = function(callback, message, decompress) {
+    message = this.getMessage(message, decompress);
+    if(message !== false) callback.call(this, message);
+    return this;
+};
+
 CustomEventBus.prototype.compress = function(str) {
     if(str !== '') return str.compressToBase64();
     return str;
@@ -106,7 +109,8 @@ CustomEventBus.prototype.publish = function(path, data) {
     //humane.log('Max length excedeed');
     var bufferSize = 32 * 1024;
     var aData = data.truncate(bufferSize);
-    var messageKey = RandomString(10);
+    var messageKey = String.random(10);
+    console.log(aData.length);
     aData.map((function(item, idx, originalArray) {
         item = [messageKey, idx + '-' + originalArray.length, item].join('::');
         if(path === 'board-message' || path === 'board-textselection' || path === 'board-draw-draw') {
