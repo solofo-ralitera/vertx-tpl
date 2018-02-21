@@ -56,12 +56,12 @@ TextBoard.prototype.initTextArea = function() {
         if(window.getSelection().toString() === '')
             this.onEdit.call(this, e.target.value)
     }).bind(this), false);
-    this.textarea.addEventListener('select', function() {
+    this.textarea.addEventListener('select', (function() {
         var sel = window.getSelection().toString();
         if(sel && sel.length > 2) {
             this.onTextSelection.call(this, sel)
         }
-    }, false);
+    }).bind(this), false);
     this.editContainer.appendChild(this.textarea);
     return this;
 };
@@ -118,7 +118,7 @@ TextBoard.prototype.setLastMessage = function(msg, selection) {
             '<span class="textselected">$1</span>')
         ;
     }else {
-        this.code.innerHTML = this.lastmessage
+        this.code.innerHTML = this.lastmessage;
     }
     if(this.highlightBoard) {
         hljs.highlightBlock(this.code);
